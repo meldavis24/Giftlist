@@ -82,35 +82,45 @@ export async function deleteList(listId: string) {
   redirect("/dashboard");
 }
 
+export type CheckPriceResult =
+  | { status: "not_found" }
+  | { status: "unchanged"; price: number }
+  | { status: "updated"; price: number; notified: boolean };
+
 // The scheduled worker (worker/) does this same check automatically and on a
 // timer; this is the same logic triggered on demand from the UI.
-export async function checkPriceNow(listId: string, itemId: string) {
+export async function checkPriceNow(listId: string, itemId: string): Promise<CheckPriceResult> {
   const supabase = await createClient();
   const { data: item } = await supabase
     .from("list_items")
     .select("id, list_id, product_url, title, retailer, current_price, target_price")
     .eq("id", itemId)
     .single();
-  if (!item) return;
+  if (!item) return { status: "not_found" };
 
   const newPrice = await fetchProductPrice(item.product_url);
   if (newPrice == null) {
     revalidatePath(`/lists/${listId}`);
-    return;
+    return { status: "not_found" };
   }
 
-  if (newPrice !== item.current_price) {
-    await supabase.from("price_checks").insert({ item_id: itemId, price: newPrice });
-    await supabase.from("list_items").update({ current_price: newPrice }).eq("id", itemId);
+  if (newPrice === item.current_price) {
+    return { status: "unchanged", price: newPrice };
   }
+
+  await supabase.from("price_checks").insert({ item_id: itemId, price: newPrice });
+  await supabase.from("list_items").update({ current_price: newPrice }).eq("id", itemId);
 
   const hitTarget = item.target_price != null && newPrice <= item.target_price;
   const isNewDrop = item.current_price == null || newPrice < item.current_price;
+  let notified = false;
   if (hitTarget && isNewDrop) {
     await notifyListMembers(item, newPrice);
+    notified = true;
   }
 
   revalidatePath(`/lists/${listId}`);
+  return { status: "updated", price: newPrice, notified };
 }
 
 async function notifyListMembers(

@@ -2,8 +2,9 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { bootstrapUser } from "@/lib/bootstrap-user";
-import { addItem, claimItem, unclaimItem, inviteMember, checkPriceNow } from "./actions";
+import { addItem, claimItem, unclaimItem, inviteMember } from "./actions";
 import ListActionsMenu from "@/components/ListActionsMenu";
+import CheckPriceButton from "@/components/CheckPriceButton";
 
 export default async function ListPage({
   params,
@@ -179,11 +180,7 @@ export default async function ListPage({
                       >
                         Buy
                       </a>
-                      <form action={checkPriceNow.bind(null, listId, item.id)}>
-                        <button className="text-xs text-muted hover:text-foreground">
-                          Check price
-                        </button>
-                      </form>
+                      <CheckPriceButton listId={listId} itemId={item.id} />
                       {!isOwner &&
                         (isMyClaim ? (
                           <form action={unclaimItem.bind(null, listId, item.id)}>
