@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { fetchProductPrice } from "@/lib/extract-price";
@@ -71,6 +72,14 @@ export async function inviteMember(listId: string, formData: FormData) {
   });
 
   revalidatePath(`/lists/${listId}`);
+}
+
+export async function deleteList(listId: string) {
+  const supabase = await createClient();
+  // RLS ("owner deletes list") already restricts this to the list's owner --
+  // a non-owner's delete would just affect zero rows.
+  await supabase.from("lists").delete().eq("id", listId);
+  redirect("/dashboard");
 }
 
 // The scheduled worker (worker/) does this same check automatically and on a

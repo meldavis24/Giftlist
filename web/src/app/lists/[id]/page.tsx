@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { bootstrapUser } from "@/lib/bootstrap-user";
 import { addItem, claimItem, unclaimItem, inviteMember, checkPriceNow } from "./actions";
+import ListActionsMenu from "@/components/ListActionsMenu";
 
 export default async function ListPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: listId } = await params;
@@ -36,6 +37,40 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
     (claims ?? []).filter((c) => c.claimed_by === user.id).map((c) => c.item_id)
   );
 
+  const shareSection = isOwner ? (
+    <div className="rounded-2xl border border-card-border bg-card p-4 shadow-sm">
+      <h2 className="mb-3 text-sm font-semibold text-muted">Share this list</h2>
+      <form action={inviteMember.bind(null, listId)} className="flex flex-col gap-2 sm:flex-row">
+        <input
+          name="email"
+          type="email"
+          placeholder="Invite by email"
+          required
+          className={`${inputClass} flex-1`}
+        />
+        <select name="role" className={inputClass}>
+          <option value="viewer">Can view / claim</option>
+          <option value="editor">Can also add items</option>
+        </select>
+        <button type="submit" className={primaryButton}>
+          Invite
+        </button>
+      </form>
+      {members && members.length > 0 && (
+        <ul className="mt-4 flex flex-col gap-1.5 text-sm">
+          {members.map((m) => (
+            <li key={m.id} className="flex items-center justify-between text-muted">
+              <span>{m.invited_email ?? m.user_id}</span>
+              <span className="text-xs">
+                {m.role} · {m.status}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  ) : null;
+
   return (
     <div className="min-h-screen">
       <header className="border-b border-card-border bg-card/60 backdrop-blur">
@@ -49,6 +84,15 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
       </header>
 
       <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+        <div className="mb-4 flex justify-end">
+          <ListActionsMenu
+            listId={listId}
+            listName={list.name}
+            isOwner={isOwner}
+            shareSection={shareSection}
+          />
+        </div>
+
         <section className="rounded-2xl border border-card-border bg-card p-4 shadow-sm">
           <h2 className="mb-3 text-sm font-semibold text-muted">Add an item</h2>
           <form action={addItem.bind(null, listId)} className="flex flex-col gap-2 sm:flex-row">
@@ -158,40 +202,6 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
             )}
           </ul>
         </section>
-
-        {isOwner && (
-          <section className="mt-6 rounded-2xl border border-card-border bg-card p-4 shadow-sm">
-            <h2 className="mb-3 text-sm font-semibold text-muted">Share this list</h2>
-            <form action={inviteMember.bind(null, listId)} className="flex flex-col gap-2 sm:flex-row">
-              <input
-                name="email"
-                type="email"
-                placeholder="Invite by email"
-                required
-                className={`${inputClass} flex-1`}
-              />
-              <select name="role" className={inputClass}>
-                <option value="viewer">Can view / claim</option>
-                <option value="editor">Can also add items</option>
-              </select>
-              <button type="submit" className={primaryButton}>
-                Invite
-              </button>
-            </form>
-            {members && members.length > 0 && (
-              <ul className="mt-4 flex flex-col gap-1.5 text-sm">
-                {members.map((m) => (
-                  <li key={m.id} className="flex items-center justify-between text-muted">
-                    <span>{m.invited_email ?? m.user_id}</span>
-                    <span className="text-xs">
-                      {m.role} · {m.status}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        )}
       </main>
     </div>
   );
