@@ -1,13 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --background: #faf8f6;
-  --foreground: #201a1a;
-  --card: #ffffff;
-  --card-border: #ece5e1;
-  --accent: #e11d48;
-  --accent-hover: #be123c;
-  --muted: #78716c;
+  --background: #f4ecdf;
+  --foreground: #3c2f24;
+  --card: #fdf8f0;
+  --card-border: #e3d3ba;
+  --accent: #6b7a4f;
+  --accent-hover: #566440;
+  --peach: #e8b48a;
+  --peach-foreground: #6b3f24;
+  --muted: #8a7a68;
 }
 
 @theme inline {
@@ -17,6 +19,8 @@
   --color-card-border: var(--card-border);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
+  --color-peach: var(--peach);
+  --color-peach-foreground: var(--peach-foreground);
   --color-muted: var(--muted);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -24,13 +28,15 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #17130f;
-    --foreground: #f3ede8;
-    --card: #221c17;
-    --card-border: #362d26;
-    --accent: #fb7185;
-    --accent-hover: #f43f5e;
-    --muted: #a89a8f;
+    --background: #241c15;
+    --foreground: #f1e6d6;
+    --card: #2f251c;
+    --card-border: #46392a;
+    --accent: #94ac6c;
+    --accent-hover: #a8c07f;
+    --peach: #c98a5e;
+    --peach-foreground: #fbe6d2;
+    --muted: #b3a08a;
   }
 }
 

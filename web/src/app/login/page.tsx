@@ -129,7 +129,7 @@ export default function LoginPage() {
               </p>
             )}
             {message && (
-              <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+              <p className="rounded-lg bg-accent/10 px-3 py-2 text-sm text-accent">
                 {message}
               </p>
             )}

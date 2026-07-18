@@ -87,7 +87,7 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3">
-                      <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-lg">
+                      <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-peach/20 text-lg">
                         🎁
                       </div>
                       <div>
@@ -102,7 +102,7 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
                         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
                           {item.retailer && <span>{item.retailer}</span>}
                           {item.current_price != null && (
-                            <span className="rounded-full bg-black/[0.04] px-2 py-0.5 text-xs font-medium text-foreground dark:bg-white/[0.06]">
+                            <span className="rounded-full bg-peach/25 px-2 py-0.5 text-xs font-medium text-peach-foreground">
                               ${item.current_price}
                             </span>
                           )}
@@ -111,7 +111,7 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
                           )}
                         </div>
                         {!isOwner && isClaimed && (
-                          <span className="mt-1.5 inline-block rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                          <span className="mt-1.5 inline-block rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-medium text-accent">
                             {isMyClaim ? "Claimed by you" : "Already claimed"}
                           </span>
                         )}
