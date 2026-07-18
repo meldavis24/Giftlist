@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import webpush from "web-push";
 import { extractPrice } from "./extractPrice.js";
+import { fetchPriceViaApify } from "./apifyPrice.js";
 
 const {
   SUPABASE_URL,
@@ -40,11 +41,22 @@ async function fetchHtml(url) {
         Accept: "text/html",
       },
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) return null;
     return await res.text();
+  } catch {
+    return null;
   } finally {
     clearTimeout(timeout);
   }
+}
+
+// Free direct fetch first; many major retailers (Amazon, Etsy, ...) block
+// that outright, so fall back to a paid Apify actor call when it fails.
+async function resolvePrice(url) {
+  const html = await fetchHtml(url);
+  const directPrice = html ? extractPrice(html) : null;
+  if (directPrice != null) return directPrice;
+  return fetchPriceViaApify(url);
 }
 
 async function notifyListMembers(item, newPrice) {
@@ -94,15 +106,7 @@ async function notifyListMembers(item, newPrice) {
 }
 
 async function checkItem(item) {
-  let html;
-  try {
-    html = await fetchHtml(item.product_url);
-  } catch (err) {
-    console.warn(`[skip] ${item.product_url} -- ${err.message}`);
-    return;
-  }
-
-  const newPrice = extractPrice(html);
+  const newPrice = await resolvePrice(item.product_url);
   if (newPrice == null) {
     console.warn(`[no price found] ${item.product_url}`);
     return;

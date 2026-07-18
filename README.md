@@ -30,13 +30,18 @@ Planned, not yet built:
 - "Buy" button opens the product page in a new tab; checkout/payment always happens
   on the retailer's own site using your browser's saved payment info — this app
   never stores card data
-- Real price checking (`web/src/lib/extract-price.ts`, shared logic in
-  `worker/src/extractPrice.js`): reads JSON-LD `Product`/`Offer` data or Open Graph
-  price meta tags from a product page. Works well on sites that expose structured
-  data for SEO (Etsy, Target, Walmart, most Shopify stores). **Does not work on
-  Amazon** — it actively blocks non-browser requests and doesn't expose price via
-  those tags; a real Amazon integration would need the official Product
-  Advertising API (requires an approved Associates account) rather than scraping.
+- Real price checking, two-tier (`web/src/lib/extract-price.ts` +
+  `apify-price.ts`, mirrored in `worker/src/`):
+  1. **Free**: fetch the page directly and read JSON-LD `Product`/`Offer` data or
+     Open Graph price meta tags. Works on sites with no bot protection
+     (independent/Shopify stores, etc.).
+  2. **Paid fallback via Apify** (only runs if step 1 finds nothing, and only if
+     `APIFY_API_TOKEN` is set): routes Amazon/Etsy URLs to actors built to get
+     past their bot protection, and anything else to a generic ecommerce actor.
+  Confirmed directly (not assumed) that Amazon and Etsy both block the free
+  method outright with bot-detection services (DataDome, in Etsy's case) that
+  return a CAPTCHA wall regardless of request headers — this is why the Apify
+  fallback exists. See **Apify cost** below before turning it on.
 - Manual "Check price now" button (in the app) and a scheduled worker (`worker/`,
   runs independently) both use the same extraction logic and send a real Web Push
   notification to every list member when price drops at/below the target you set
@@ -73,6 +78,11 @@ npx web-push generate-vapid-keys
 Put the public key in `NEXT_PUBLIC_VAPID_PUBLIC_KEY` and the private key in
 `VAPID_PRIVATE_KEY`.
 
+Optionally, add `APIFY_API_TOKEN` (from your Apify account → Settings →
+Integrations → API tokens) to let price checks fall back to Apify for sites
+the free method can't read. Read **Apify cost** below before doing this on the
+worker specifically.
+
 ```
 npm install
 npm run dev
@@ -105,6 +115,33 @@ the web app's hosting.
 See `extension/README.md`. In short: load it unpacked in Chrome/Edge, then
 configure it with your app's URL and a token generated from `/settings/tokens`.
 
+## Apify cost
+
+Setting `APIFY_API_TOKEN` turns on the paid fallback for sites the free method
+can't read. Roughly, per check that actually falls back to Apify:
+
+| Site type | Actor | Cost per check |
+| --- | --- | --- |
+| Amazon | jaybird/amazon-product-data-scraper | ~$0.008 |
+| Etsy | saswave/etsy-product-scraper | ~$0.005 |
+| Anything else blocked | khadinakbar/ecommerce-store-scraper | ~$0.008 |
+
+This only fires when the free direct-fetch attempt already failed — an
+unprotected site never touches Apify. But the **manual** "Check price now"
+button in the app and the **scheduled worker** are both wired to this fallback,
+so:
+
+- Clicking "Check price now" on a blocked item costs a few cents each time —
+  fine, since you're doing it on purpose.
+- The worker re-checks **every item** on a timer (`CHECK_INTERVAL_MINUTES`).
+  At the default 60 minutes, a handful of Amazon/Etsy items adds up fast (e.g.
+  5 items × 24 checks/day × ~$0.007 ≈ $0.84/day, ~$25/month) purely from
+  repeated re-checks that mostly find no change. **Set `CHECK_INTERVAL_MINUTES`
+  to something like 720 (twice a day) or 1440 (daily) once Apify is on** —
+  prices don't move hourly anyway.
+- Leave `APIFY_API_TOKEN` unset if you'd rather have zero ongoing cost and
+  only track sites the free method already handles.
+
 ## Known environment quirks
 
 - This project lives inside a OneDrive-synced folder. OneDrive can intermittently
@@ -119,16 +156,17 @@ configure it with your app's URL and a token generated from `/settings/tokens`.
   ```
   npx supabase gen types typescript --project-id <id> > src/lib/database.types.ts
   ```
-- Price scraping is best-effort and will silently find nothing on sites that
-  render price client-side without structured data. This is a real limitation,
-  not a bug to "fix" without a fundamentally different approach (headless
-  browser, or a paid price-tracking API).
+- Free-tier price extraction is best-effort and will find nothing on sites that
+  render price client-side without structured data, or that block the request
+  outright. The Apify fallback (see above) covers most of that gap for a cost;
+  fully generic sites with unusual page structures may still fail even there.
 
 ## Roadmap
 
 1. **Phase 1 (done):** auth, lists, manual add, sharing, claim-privacy, push infra
 2. **Phase 2 (done):** scheduled price tracking + real push alerts, browser
-   extension for "add to my list from any page"
+   extension for "add to my list from any page", Apify fallback for bot-protected
+   retailers (Amazon, Etsy, generic)
 3. **Phase 3:** mobile app (Expo) with native push notifications
-4. **Phase 4:** broader/more reliable retailer support (e.g. Amazon Product
-   Advertising API), scale-out if opened beyond family use
+4. **Phase 4:** cross-site price search when adding an item ("is this cheaper
+   elsewhere?"), scale-out if opened beyond family use

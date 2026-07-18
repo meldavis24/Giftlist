@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { fetchPriceViaApify } from "./apify-price";
 
 function toNumber(value: unknown): number | null {
   if (value == null) return null;
@@ -48,16 +49,15 @@ function priceFromMetaTags($: cheerio.CheerioAPI): number | null {
 /**
  * Best-effort price extraction from a product page's HTML -- same approach as
  * worker/src/extractPrice.js. Works for retailers exposing structured data
- * (JSON-LD Product/Offer, Open Graph price meta tags); won't resolve prices
- * rendered client-side with no structured data (notably Amazon, which also
- * actively blocks non-browser requests).
+ * (JSON-LD Product/Offer, Open Graph price meta tags) that don't block plain
+ * server-side requests.
  */
 export function extractPrice(html: string): number | null {
   const $ = cheerio.load(html);
   return priceFromJsonLd($) ?? priceFromMetaTags($);
 }
 
-export async function fetchProductPrice(url: string): Promise<number | null> {
+async function fetchHtml(url: string): Promise<string | null> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
   try {
@@ -70,10 +70,26 @@ export async function fetchProductPrice(url: string): Promise<number | null> {
       },
     });
     if (!res.ok) return null;
-    return extractPrice(await res.text());
+    return await res.text();
   } catch {
     return null;
   } finally {
     clearTimeout(timeout);
   }
+}
+
+/**
+ * Tries a plain, free fetch first (works for sites with no bot protection).
+ * Many major retailers (Amazon, Etsy, ...) block this outright with services
+ * like DataDome/PerimeterX regardless of headers -- confirmed by reproducing
+ * their block directly, not guessed. For those, falls back to a paid Apify
+ * actor call (see apify-price.ts). The Apify step is skipped entirely if
+ * APIFY_API_TOKEN isn't configured, so this degrades gracefully.
+ */
+export async function fetchProductPrice(url: string): Promise<number | null> {
+  const html = await fetchHtml(url);
+  const directPrice = html ? extractPrice(html) : null;
+  if (directPrice != null) return directPrice;
+
+  return fetchPriceViaApify(url);
 }
