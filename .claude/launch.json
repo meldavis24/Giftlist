@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "giftlist-web",
+      "runtimeExecutable": ".claude\\run-web.cmd",
+      "runtimeArgs": [],
+      "port": 3000
+    }
+  ]
+}
