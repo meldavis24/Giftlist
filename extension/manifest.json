@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "GiftList - Add to My List",
+  "version": "0.1.0",
+  "description": "Add the current product page to one of your GiftList wish lists.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Add to GiftList"
+  },
+  "options_page": "options.html",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": ["<all_urls>"]
+}

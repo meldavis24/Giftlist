@@ -29,8 +29,18 @@ export async function proxy(request: NextRequest) {
 
   const isAuthRoute = request.nextUrl.pathname.startsWith("/login");
   const isPublicAsset = request.nextUrl.pathname.startsWith("/_next");
+  // API routes authenticate themselves (cookie session or Bearer token) and
+  // return their own 401/403 — redirecting them to the /login page would break
+  // both the fetch-based push routes and the token-based extension routes.
+  const isApiRoute = request.nextUrl.pathname.startsWith("/api/");
 
-  if (!user && !isAuthRoute && !isPublicAsset && request.nextUrl.pathname !== "/") {
+  if (
+    !user &&
+    !isAuthRoute &&
+    !isPublicAsset &&
+    !isApiRoute &&
+    request.nextUrl.pathname !== "/"
+  ) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

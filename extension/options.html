@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>GiftList extension settings</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 420px;
+        margin: 40px auto;
+        color: #111;
+      }
+      h1 {
+        font-size: 18px;
+      }
+      p {
+        font-size: 13px;
+        color: #555;
+      }
+      label {
+        display: block;
+        font-size: 13px;
+        margin: 14px 0 4px;
+      }
+      input {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 8px;
+        font-size: 13px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      button {
+        margin-top: 16px;
+        padding: 8px 16px;
+        background: #111;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      #saved {
+        margin-top: 10px;
+        font-size: 13px;
+        color: #15803d;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>GiftList extension settings</h1>
+    <p>
+      Generate a token from your GiftList app's Extension Tokens page
+      (<code>/settings/tokens</code>) and paste it below.
+    </p>
+
+    <label for="baseUrl">GiftList app URL</label>
+    <input id="baseUrl" type="text" placeholder="https://your-giftlist-app.com" />
+
+    <label for="token">API token</label>
+    <input id="token" type="text" placeholder="gl_..." />
+
+    <button id="save">Save</button>
+    <div id="saved"></div>
+
+    <script src="options.js"></script>
+  </body>
+</html>

@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
+import { fetchProductPrice } from "@/lib/extract-price";
+import { getWebPush } from "@/lib/push/vapid";
 
 export async function addItem(listId: string, formData: FormData) {
   const productUrl = String(formData.get("product_url") ?? "").trim();
@@ -70,22 +73,92 @@ export async function inviteMember(listId: string, formData: FormData) {
   revalidatePath(`/lists/${listId}`);
 }
 
-// Phase 2 will replace this with a real scheduled worker hitting retailer
-// APIs/scrapers. For now it's a stub so the UI/DB plumbing is provable end to end.
+// The scheduled worker (worker/) does this same check automatically and on a
+// timer; this is the same logic triggered on demand from the UI.
 export async function checkPriceNow(listId: string, itemId: string) {
   const supabase = await createClient();
   const { data: item } = await supabase
     .from("list_items")
-    .select("current_price")
+    .select("id, list_id, product_url, title, retailer, current_price, target_price")
     .eq("id", itemId)
     .single();
+  if (!item) return;
 
-  if (item) {
-    await supabase.from("price_checks").insert({
-      item_id: itemId,
-      price: item.current_price ?? 0,
-    });
+  const newPrice = await fetchProductPrice(item.product_url);
+  if (newPrice == null) {
+    revalidatePath(`/lists/${listId}`);
+    return;
+  }
+
+  if (newPrice !== item.current_price) {
+    await supabase.from("price_checks").insert({ item_id: itemId, price: newPrice });
+    await supabase.from("list_items").update({ current_price: newPrice }).eq("id", itemId);
+  }
+
+  const hitTarget = item.target_price != null && newPrice <= item.target_price;
+  const isNewDrop = item.current_price == null || newPrice < item.current_price;
+  if (hitTarget && isNewDrop) {
+    await notifyListMembers(item, newPrice);
   }
 
   revalidatePath(`/lists/${listId}`);
+}
+
+async function notifyListMembers(
+  item: {
+    list_id: string;
+    title: string | null;
+    retailer: string | null;
+    target_price: number | null;
+  },
+  newPrice: number
+) {
+  const service = createServiceClient();
+
+  const { data: list } = await service
+    .from("lists")
+    .select("owner_id")
+    .eq("id", item.list_id)
+    .single();
+  if (!list) return;
+
+  const { data: members } = await service
+    .from("list_members")
+    .select("user_id")
+    .eq("list_id", item.list_id)
+    .eq("status", "accepted");
+
+  const userIds = [...new Set([list.owner_id, ...(members ?? []).map((m) => m.user_id)])].filter(
+    (id): id is string => Boolean(id)
+  );
+  if (!userIds.length) return;
+
+  const { data: subs } = await service
+    .from("push_subscriptions")
+    .select("id, endpoint, p256dh, auth")
+    .in("user_id", userIds);
+  if (!subs?.length) return;
+
+  const webpush = getWebPush();
+  const payload = JSON.stringify({
+    title: "Price drop!",
+    body: `${item.title || item.retailer || "An item"} is now $${newPrice} (target: $${item.target_price})`,
+    url: `/lists/${item.list_id}`,
+  });
+
+  await Promise.allSettled(
+    subs.map(async (sub) => {
+      try {
+        await webpush.sendNotification(
+          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+          payload
+        );
+      } catch (err: unknown) {
+        const statusCode = (err as { statusCode?: number })?.statusCode;
+        if (statusCode === 404 || statusCode === 410) {
+          await service.from("push_subscriptions").delete().eq("id", sub.id);
+        }
+      }
+    })
+  );
 }

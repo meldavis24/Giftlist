@@ -25,6 +25,9 @@ export default async function DashboardPage() {
         <h1 className="text-2xl font-semibold">Your lists</h1>
         <div className="flex items-center gap-3">
           <PushSubscribeButton />
+          <Link href="/settings/tokens" className="text-sm text-neutral-500 underline">
+            Extension tokens
+          </Link>
           <form action={signOut}>
             <button className="text-sm text-neutral-500 underline">Sign out</button>
           </form>

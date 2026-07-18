@@ -118,6 +118,26 @@ export type Database = {
         Update: { endpoint?: string; p256dh?: string; auth?: string };
         Relationships: [];
       };
+      api_tokens: {
+        Row: {
+          id: string;
+          user_id: string;
+          label: string;
+          token_hash: string;
+          created_at: string;
+          last_used_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          label?: string;
+          token_hash: string;
+          created_at?: string;
+          last_used_at?: string | null;
+        };
+        Update: { last_used_at?: string | null };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
