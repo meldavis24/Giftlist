@@ -54,7 +54,7 @@ export default function PushSubscribeButton() {
     <button
       onClick={subscribe}
       disabled={status === "subscribing" || status === "subscribed"}
-      className="text-sm text-neutral-500 underline disabled:no-underline"
+      className="text-muted hover:text-foreground disabled:hover:text-muted"
     >
       {status === "subscribed" ? "Notifications on" : "Enable price-drop notifications"}
     </button>

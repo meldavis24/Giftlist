@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { bootstrapUser } from "@/lib/bootstrap-user";
@@ -36,131 +37,168 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
   );
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10">
-      <a href="/dashboard" className="text-sm text-neutral-500 underline">
-        &larr; All lists
-      </a>
-      <h1 className="mt-2 text-2xl font-semibold">{list.name}</h1>
-      {list.occasion && <p className="text-neutral-500">{list.occasion}</p>}
+    <div className="min-h-screen">
+      <header className="border-b border-card-border bg-card/60 backdrop-blur">
+        <div className="mx-auto max-w-3xl px-4 py-4 sm:px-6">
+          <Link href="/dashboard" className="text-sm text-muted hover:text-foreground">
+            &larr; All lists
+          </Link>
+          <h1 className="mt-1 text-xl font-semibold tracking-tight">{list.name}</h1>
+          {list.occasion && <p className="text-sm text-muted">{list.occasion}</p>}
+        </div>
+      </header>
 
-      <section className="mt-8">
-        <h2 className="mb-3 font-medium">Add an item</h2>
-        <form action={addItem.bind(null, listId)} className="flex flex-col gap-2 sm:flex-row">
-          <input
-            name="product_url"
-            placeholder="Product URL"
-            required
-            className="flex-1 rounded border px-3 py-2"
-          />
-          <input name="title" placeholder="Name (optional)" className="rounded border px-3 py-2" />
-          <input
-            name="target_price"
-            placeholder="Notify below $"
-            type="number"
-            step="0.01"
-            className="w-36 rounded border px-3 py-2"
-          />
-          <button type="submit" className="rounded bg-black px-4 py-2 text-white">
-            Add
-          </button>
-        </form>
-      </section>
-
-      <section className="mt-8">
-        <h2 className="mb-3 font-medium">Items</h2>
-        <ul className="flex flex-col gap-3">
-          {(items ?? []).map((item) => {
-            const isClaimed = claimedItemIds.has(item.id);
-            const isMyClaim = myClaimedItemIds.has(item.id);
-            return (
-              <li key={item.id} className="rounded border px-4 py-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <a
-                      href={item.product_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-medium underline"
-                    >
-                      {item.title || item.product_url}
-                    </a>
-                    <div className="text-sm text-neutral-500">
-                      {item.retailer}
-                      {item.current_price != null && ` · $${item.current_price}`}
-                      {item.target_price != null && ` · notify below $${item.target_price}`}
-                    </div>
-                    {!isOwner && isClaimed && (
-                      <div className="mt-1 text-sm text-green-700">
-                        {isMyClaim ? "Claimed by you" : "Already claimed by someone"}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex shrink-0 flex-col items-end gap-1">
-                    <a
-                      href={item.product_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded bg-black px-3 py-1.5 text-sm text-white"
-                    >
-                      Buy
-                    </a>
-                    <form action={checkPriceNow.bind(null, listId, item.id)}>
-                      <button className="text-xs text-neutral-500 underline">
-                        Check price now
-                      </button>
-                    </form>
-                    {!isOwner &&
-                      (isMyClaim ? (
-                        <form action={unclaimItem.bind(null, listId, item.id)}>
-                          <button className="text-xs text-neutral-500 underline">Unclaim</button>
-                        </form>
-                      ) : !isClaimed ? (
-                        <form action={claimItem.bind(null, listId, item.id)}>
-                          <button className="text-xs text-neutral-500 underline">
-                            Claim (I'll get this)
-                          </button>
-                        </form>
-                      ) : null)}
-                  </div>
-                </div>
-              </li>
-            );
-          })}
-          {(!items || items.length === 0) && (
-            <p className="text-sm text-neutral-500">No items yet.</p>
-          )}
-        </ul>
-      </section>
-
-      {isOwner && (
-        <section className="mt-8">
-          <h2 className="mb-3 font-medium">Share this list</h2>
-          <form action={inviteMember.bind(null, listId)} className="flex gap-2">
+      <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+        <section className="rounded-2xl border border-card-border bg-card p-4 shadow-sm">
+          <h2 className="mb-3 text-sm font-semibold text-muted">Add an item</h2>
+          <form action={addItem.bind(null, listId)} className="flex flex-col gap-2 sm:flex-row">
             <input
-              name="email"
-              type="email"
-              placeholder="Invite by email"
+              name="product_url"
+              placeholder="Paste a product URL"
               required
-              className="flex-1 rounded border px-3 py-2"
+              className={`${inputClass} flex-1`}
             />
-            <select name="role" className="rounded border px-3 py-2">
-              <option value="viewer">Can view / claim</option>
-              <option value="editor">Can also add items</option>
-            </select>
-            <button type="submit" className="rounded bg-black px-4 py-2 text-white">
-              Invite
+            <input name="title" placeholder="Name (optional)" className={`${inputClass} sm:w-40`} />
+            <input
+              name="target_price"
+              placeholder="Notify below $"
+              type="number"
+              step="0.01"
+              className={`${inputClass} sm:w-36`}
+            />
+            <button type="submit" className={primaryButton}>
+              Add
             </button>
           </form>
-          <ul className="mt-3 flex flex-col gap-1 text-sm text-neutral-500">
-            {(members ?? []).map((m) => (
-              <li key={m.id}>
-                {m.invited_email ?? m.user_id} — {m.role} ({m.status})
-              </li>
-            ))}
+        </section>
+
+        <section className="mt-6">
+          <h2 className="mb-3 text-sm font-semibold text-muted">
+            Items {items && items.length > 0 ? `(${items.length})` : ""}
+          </h2>
+          <ul className="flex flex-col gap-3">
+            {(items ?? []).map((item) => {
+              const isClaimed = claimedItemIds.has(item.id);
+              const isMyClaim = myClaimedItemIds.has(item.id);
+              return (
+                <li
+                  key={item.id}
+                  className="rounded-2xl border border-card-border bg-card p-4 shadow-sm transition hover:shadow-md"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-lg">
+                        🎁
+                      </div>
+                      <div>
+                        <a
+                          href={item.product_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-medium tracking-tight hover:text-accent"
+                        >
+                          {item.title || item.product_url}
+                        </a>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
+                          {item.retailer && <span>{item.retailer}</span>}
+                          {item.current_price != null && (
+                            <span className="rounded-full bg-black/[0.04] px-2 py-0.5 text-xs font-medium text-foreground dark:bg-white/[0.06]">
+                              ${item.current_price}
+                            </span>
+                          )}
+                          {item.target_price != null && (
+                            <span className="text-xs">notify below ${item.target_price}</span>
+                          )}
+                        </div>
+                        {!isOwner && isClaimed && (
+                          <span className="mt-1.5 inline-block rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                            {isMyClaim ? "Claimed by you" : "Already claimed"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                      <a
+                        href={item.product_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-accent/30 transition hover:bg-accent-hover"
+                      >
+                        Buy
+                      </a>
+                      <form action={checkPriceNow.bind(null, listId, item.id)}>
+                        <button className="text-xs text-muted hover:text-foreground">
+                          Check price
+                        </button>
+                      </form>
+                      {!isOwner &&
+                        (isMyClaim ? (
+                          <form action={unclaimItem.bind(null, listId, item.id)}>
+                            <button className="text-xs text-muted hover:text-foreground">
+                              Unclaim
+                            </button>
+                          </form>
+                        ) : !isClaimed ? (
+                          <form action={claimItem.bind(null, listId, item.id)}>
+                            <button className="text-xs font-medium text-accent hover:text-accent-hover">
+                              I&apos;ll get this
+                            </button>
+                          </form>
+                        ) : null)}
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+            {(!items || items.length === 0) && (
+              <div className="rounded-2xl border border-dashed border-card-border py-12 text-center">
+                <p className="text-sm text-muted">No items yet — add one above.</p>
+              </div>
+            )}
           </ul>
         </section>
-      )}
+
+        {isOwner && (
+          <section className="mt-6 rounded-2xl border border-card-border bg-card p-4 shadow-sm">
+            <h2 className="mb-3 text-sm font-semibold text-muted">Share this list</h2>
+            <form action={inviteMember.bind(null, listId)} className="flex flex-col gap-2 sm:flex-row">
+              <input
+                name="email"
+                type="email"
+                placeholder="Invite by email"
+                required
+                className={`${inputClass} flex-1`}
+              />
+              <select name="role" className={inputClass}>
+                <option value="viewer">Can view / claim</option>
+                <option value="editor">Can also add items</option>
+              </select>
+              <button type="submit" className={primaryButton}>
+                Invite
+              </button>
+            </form>
+            {members && members.length > 0 && (
+              <ul className="mt-4 flex flex-col gap-1.5 text-sm">
+                {members.map((m) => (
+                  <li key={m.id} className="flex items-center justify-between text-muted">
+                    <span>{m.invited_email ?? m.user_id}</span>
+                    <span className="text-xs">
+                      {m.role} · {m.status}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
+      </main>
     </div>
   );
 }
+
+const inputClass =
+  "rounded-xl border border-card-border bg-transparent px-3.5 py-2.5 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20";
+
+const primaryButton =
+  "rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-accent/30 transition hover:bg-accent-hover";
