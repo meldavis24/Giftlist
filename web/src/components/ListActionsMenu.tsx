@@ -8,14 +8,16 @@ export default function ListActionsMenu({
   listName,
   isOwner,
   shareSection,
+  initialShareOpen = false,
 }: {
   listId: string;
   listName: string;
   isOwner: boolean;
   shareSection: React.ReactNode;
+  initialShareOpen?: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [shareOpen, setShareOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(initialShareOpen);
   const [isDeleting, startTransition] = useTransition();
   const menuRef = useRef<HTMLDivElement>(null);
 

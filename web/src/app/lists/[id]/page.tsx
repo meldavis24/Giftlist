@@ -5,8 +5,15 @@ import { bootstrapUser } from "@/lib/bootstrap-user";
 import { addItem, claimItem, unclaimItem, inviteMember, checkPriceNow } from "./actions";
 import ListActionsMenu from "@/components/ListActionsMenu";
 
-export default async function ListPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ListPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ share?: string }>;
+}) {
   const { id: listId } = await params;
+  const { share } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -90,6 +97,7 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
             listName={list.name}
             isOwner={isOwner}
             shareSection={shareSection}
+            initialShareOpen={share === "1"}
           />
         </div>
 

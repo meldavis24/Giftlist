@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { bootstrapUser } from "@/lib/bootstrap-user";
 import { createList, signOut } from "./actions";
 import PushSubscribeButton from "@/components/PushSubscribeButton";
+import DashboardListMenu from "@/components/DashboardListMenu";
 
 const OCCASION_EMOJI: Record<string, string> = {
   christmas: "🎄",
@@ -90,17 +91,25 @@ export default async function DashboardPage() {
         {lists && lists.length > 0 ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {lists.map((list) => (
-              <Link
+              <div
                 key={list.id}
-                href={`/lists/${list.id}`}
-                className="group rounded-2xl border border-card-border bg-card p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                className="group relative rounded-2xl border border-card-border bg-card p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
               >
-                <span className="text-2xl">{emojiFor(list.occasion)}</span>
-                <div className="mt-3 font-semibold tracking-tight group-hover:text-accent">
-                  {list.name}
-                </div>
-                {list.occasion && <div className="mt-0.5 text-sm text-muted">{list.occasion}</div>}
-              </Link>
+                <DashboardListMenu
+                  listId={list.id}
+                  listName={list.name}
+                  isOwner={list.owner_id === user.id}
+                />
+                <Link href={`/lists/${list.id}`} className="block">
+                  <span className="text-2xl">{emojiFor(list.occasion)}</span>
+                  <div className="mt-3 pr-8 font-semibold tracking-tight group-hover:text-accent">
+                    {list.name}
+                  </div>
+                  {list.occasion && (
+                    <div className="mt-0.5 text-sm text-muted">{list.occasion}</div>
+                  )}
+                </Link>
+              </div>
             ))}
           </div>
         ) : (
